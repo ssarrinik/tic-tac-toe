@@ -1,12 +1,43 @@
 from func import *
 
-board = Board()
-player1 = Player(board, 'X')
-player2 = Player(board, 'O')
+game_mode = int(input("Do you want a PvP or bot game? Answer with 1 for PvP or 0 for bot: "))
+turn = input("Who play first X or O: ")
 
-while not board.check_winner():
-        player1.play()
-        if board.check_winner():
+board = Board()
+
+if game_mode == 1:
+        if turn == 'X':
+                first_player = Player(board, 'X')
+                second_player = Player(board, 'O')
+        else:
+                first_player = Player(board, 'O')
+                second_player = Player(board, 'X')
+else:
+        if turn == 'X':
+                first_player = Bot(board, 'X')
+                second_player = Player(board, 'O')
+        else:
+                first_player = Player(board, 'O')
+                second_player = Bot(board, 'X')
+
+
+while 1:
+        if not board.empty_slots():
+                print("It's a tie!!!")
                 break
-        player2.play()
+        first_player.play()
+        winner = board.check_winner()
+        if winner:
+                print(f'Winner is the player with letter {winner}')
+                break
+
+
+        if not board.empty_slots():
+                print("It's a tie!!!")
+                break
+        second_player.play()
+        winner = board.check_winner()
+        if winner:
+                print(f'Winner is the player with letter {winner}')
+                break
 

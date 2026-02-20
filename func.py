@@ -4,12 +4,11 @@ class Player:
         self.character = char
         self.board = board
 
-    def play(self):
-        x = 0
-        y = 0
+    def ask_move(self):
         ask_again = 1
-        while ask_again:
+        x = y = 0
 
+        while ask_again:
             try:
                 x, y = input("Enter position you want to play in format x,y: ").split(',')
                 x = int(x)
@@ -19,12 +18,20 @@ class Player:
             except ValueError:
                 print("Oups... x,y must be integer values with ',' in between!")
             else:
-                ask_again = 0
+                if not self.board.check_if_slot_empty(x, y):
+                    print("The slot is already filled!")
+                    ask_again = 1
+                else:
+                    ask_again = 0
+        return x, y
 
+    def play(self):
+        x = 0
+        y = 0
+
+        x, y = self.ask_move()
         if self.board.check_if_slot_empty(x, y):
             self.board.put_player(x, y, self.character)
-        else:
-            print("The slot is already filled!")
 
         self.board.print_board()
 
@@ -44,48 +51,45 @@ def check_winner_by_rows(matrix):
         # print(f"The number of O is {two} in row {row}\n")
 
         if ones == 3:
-            print("The player1 is the winner")
-            return 1
+            return 'X'
         elif two == 3:
-            print("The player2 is the winner")
-            return 2
+            return 'O'
 
         ones = 0
         two = 0
 
     if matrix[0][0] == matrix[1][1] == matrix[2][2] and matrix[0][0] != ' ':
-        print(f"The player{not(matrix[0][0] == 'X')} is the winner")
         return matrix[0][0]
     elif matrix[0][2] == matrix[1][1] == matrix[2][0] and matrix[1][1] != ' ':
-        print(f"The player{matrix[1][1] == 'O'} is the winner")
         return matrix[0][2]
 
-    return 0
+    return ' '
 
 
 class Board:
 
     def __init__(self):
-        self.arr = [[ ' ' for _ in range (3)] for _ in range(3)]
+        self.arr = [[ ' ' for _ in range(3)] for _ in range(3)]
 
     def check_if_slot_empty(self, x, y):
-        if self.arr[x][y] != ' ':
+        if self.arr[y][x] != ' ':
             return False
 
         return True
 
     def put_player(self, x, y, char):
-        self.arr[x][y] = char
+        self.arr[y][x] = char
 
     def check_winner(self):
 
-        if check_winner_by_rows(self.arr):
-            return True
-
+        winner = check_winner_by_rows(self.arr)
+        if winner == 'X' or winner == 'O':
+            return winner
         transpose_matrix = list(zip(*self.arr))
 
-        if check_winner_by_rows(transpose_matrix):
-            return True
+        winner = check_winner_by_rows(transpose_matrix)
+        if winner == 'X' or winner == 'O':
+            return winner
 
     def print_board(self):
 
@@ -99,3 +103,83 @@ class Board:
                     print(num)
             if j > 0:
                 print('   ' + '------')
+
+    def empty_slots(self):
+        for row in self.arr:
+            for n in row:
+                if n == ' ':
+                    return True
+        return False
+
+    def remove_slot(self, x, y):
+        self.arr[y][x] = ' '
+
+    def get_available_moves(self):
+        moves = []
+        for i, row in enumerate(self.arr):
+            for j, num in enumerate(row):
+                if num == ' ':
+                    moves.append((j, i))
+
+        return moves
+
+
+class Bot(Player):
+
+    def __init__(self, board, char):
+        super().__init__(board, char)
+
+    def play(self):
+        depth = 0
+        best_x = 0
+        best_y = 0
+        best_score = -float('inf')
+
+        for move in self.board.get_available_moves():
+            x, y = move
+            self.board.put_player(x, y, 'X')
+            score = self.maxing(depth + 1,False)
+            self.board.remove_slot(x, y)
+
+            if best_score < score:
+                best_score = score
+                best_x = x
+                best_y = y
+
+        if self.board.check_if_slot_empty(best_x, best_y):
+            self.board.put_player(best_x, best_y, 'X')
+        else:
+            print('Slot is already filled.')
+
+        self.board.print_board()
+
+    def maxing(self, depth, is_maxing):
+
+        winner = self.board.check_winner()
+        if winner == 'X':
+            return 10
+        if winner == 'O':
+            return -10
+        if not self.board.empty_slots():
+            return 0
+
+        if is_maxing:
+            best_score = -float('inf')
+            for move in self.board.get_available_moves():
+                x, y = move
+                self.board.put_player(x, y, 'X')
+                score = self.maxing(depth + 1, False)
+                self.board.remove_slot(x, y)
+                if score > best_score:
+                    best_score = score
+            return best_score
+        else:
+            best_score = float('inf')
+            for move in self.board.get_available_moves():
+                x, y = move
+                self.board.put_player(x, y, 'O')
+                score = self.maxing(depth + 1, True)
+                self.board.remove_slot(x, y)
+                if score < best_score:
+                    best_score = score
+            return best_score
