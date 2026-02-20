@@ -137,7 +137,7 @@ class Bot(Player):
 
         for move in self.board.get_available_moves():
             x, y = move
-            self.board.put_player(x, y, 'X')
+            self.board.put_player(x, y, self.character)
             score = self.maxing(depth + 1,False)
             self.board.remove_slot(x, y)
 
@@ -147,18 +147,22 @@ class Bot(Player):
                 best_y = y
 
         if self.board.check_if_slot_empty(best_x, best_y):
-            self.board.put_player(best_x, best_y, 'X')
+            self.board.put_player(best_x, best_y, self.character)
         else:
             print('Slot is already filled.')
 
         self.board.print_board()
 
     def maxing(self, depth, is_maxing):
+        if self.character == 'X':
+            char = 'O'
+        else:
+            char = 'X'
 
         winner = self.board.check_winner()
-        if winner == 'X':
+        if winner == self.character:
             return 10
-        if winner == 'O':
+        if winner == char:
             return -10
         if not self.board.empty_slots():
             return 0
@@ -167,7 +171,7 @@ class Bot(Player):
             best_score = -float('inf')
             for move in self.board.get_available_moves():
                 x, y = move
-                self.board.put_player(x, y, 'X')
+                self.board.put_player(x, y, self.character)
                 score = self.maxing(depth + 1, False)
                 self.board.remove_slot(x, y)
                 if score > best_score:
@@ -177,7 +181,11 @@ class Bot(Player):
             best_score = float('inf')
             for move in self.board.get_available_moves():
                 x, y = move
-                self.board.put_player(x, y, 'O')
+                if self.character == 'X':
+                    char = 'O'
+                else:
+                    char = 'X'
+                self.board.put_player(x, y, char)
                 score = self.maxing(depth + 1, True)
                 self.board.remove_slot(x, y)
                 if score < best_score:
