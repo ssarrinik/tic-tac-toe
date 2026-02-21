@@ -1,3 +1,7 @@
+import time
+
+MATRIX_SIZE = 4
+
 class Player:
 
     def __init__(self, board, char):
@@ -50,18 +54,27 @@ def check_winner_by_rows(matrix):
         # print(f"The number of X is {ones} in row {row}")
         # print(f"The number of O is {two} in row {row}\n")
 
-        if ones == 3:
+        if ones == MATRIX_SIZE:
             return 'X'
-        elif two == 3:
+        elif two == MATRIX_SIZE:
             return 'O'
 
         ones = 0
         two = 0
 
-    if matrix[0][0] == matrix[1][1] == matrix[2][2] and matrix[0][0] != ' ':
-        return matrix[0][0]
-    elif matrix[0][2] == matrix[1][1] == matrix[2][0] and matrix[1][1] != ' ':
-        return matrix[0][2]
+    return check_diagonals(matrix)
+
+
+def check_diagonals(matrix):
+    n = len(matrix)
+
+    main_diag = [matrix[i][i] for i in range(n)]
+    if all(cell == main_diag[0] and cell != ' ' for cell in main_diag):
+        return main_diag[0]
+
+    anti_diag = [matrix[i][n - 1 - i] for i in range(n)]
+    if all(cell == anti_diag[0] and cell != ' ' for cell in anti_diag):
+        return anti_diag[0]
 
     return ' '
 
@@ -69,7 +82,7 @@ def check_winner_by_rows(matrix):
 class Board:
 
     def __init__(self):
-        self.arr = [[ ' ' for _ in range(3)] for _ in range(3)]
+        self.arr = [[ ' ' for _ in range(MATRIX_SIZE)] for _ in range(MATRIX_SIZE)]
 
     def check_if_slot_empty(self, x, y):
         if self.arr[y][x] != ' ':
@@ -93,11 +106,11 @@ class Board:
 
     def print_board(self):
 
-        for j in range(2, -1, -1):
+        for j in range(MATRIX_SIZE-1, -1, -1):
             row = self.arr[j]
             print('   ', end='')
             for i, num in enumerate(row):
-                if i < 2:
+                if i < MATRIX_SIZE-1:
                     print(f"{num}|", end='')
                 else:
                     print(num)
@@ -135,16 +148,21 @@ class Bot(Player):
         best_y = 0
         best_score = -float('inf')
 
+        start_time = time.time()
         for move in self.board.get_available_moves():
+            print(f"We started evaluating the next slot.")
             x, y = move
             self.board.put_player(x, y, self.character)
-            score = self.maxing(depth + 1,False)
+
+            # score = self.maxing(depth + 1, False)
+            score = self.alfabeta(depth+1, -float('inf'), float('inf'), False)
             self.board.remove_slot(x, y)
 
             if best_score < score:
                 best_score = score
                 best_x = x
                 best_y = y
+        print(f'Time of executions is sec {time.time() - start_time}')
 
         if self.board.check_if_slot_empty(best_x, best_y):
             self.board.put_player(best_x, best_y, self.character)
@@ -166,6 +184,8 @@ class Bot(Player):
             return -10
         if not self.board.empty_slots():
             return 0
+        # if depth == 6:
+        #     return 0
 
         if is_maxing:
             best_score = -float('inf')
@@ -191,3 +211,42 @@ class Bot(Player):
                 if score < best_score:
                     best_score = score
             return best_score
+
+    def alfabeta(self, depth, a, b, is_maxing):
+        winner = self.board.check_winner()
+        if self.character == 'X':
+            char = 'O'
+        else:
+            char = 'X'
+
+        if winner == self.character:
+            return 10
+        if winner == char:
+            return -10
+        if not self.board.empty_slots():
+            return 0
+
+        if is_maxing:
+            value = -float('inf')
+            for move in self.board.get_available_moves():
+                x, y = move
+                self.board.put_player(x, y, self.character)
+                value = max(value, self.alfabeta(depth + 1, a, b, False))
+                self.board.remove_slot(x, y)
+                if value >= b:
+                    break
+                a = max(a, value)
+            return value
+        else:
+            value = float('inf')
+            for move in self.board.get_available_moves():
+                x, y = move
+                self.board.put_player(x, y, char)
+                value = min(value, self.alfabeta(depth + 1, a, b, True))
+                self.board.remove_slot(x, y)
+                if value <= a:
+                    break
+                b = min(b, value)
+            return value
+
+
